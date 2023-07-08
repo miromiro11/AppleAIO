@@ -6,6 +6,10 @@ import json
 import asyncio
 import aiohttp
 import time
+import dotenv
+import os
+
+dotenv.load_dotenv()
 
 log = logging.getLogger(__name__)
 coloredlogs.install(level='DEBUG', logger=log)
@@ -20,7 +24,7 @@ def cLog(message):
     return
 
 def getAppleJobOpenings():
-    resp = requests.get('https://jobs.apple.com/api/v1/jobDetails/PIPE-114438151/storeLocations?fieldValue=postLocation-SFMETRO')
+    resp = requests.get(f'https://jobs.apple.com/api/v1/jobDetails/{os.getenv("JOBID")}/storeLocations?fieldValue={os.getenv("LOCATIONID")}')
     if resp.status_code != 200:
        cLog(f"Error: {resp.status_code}")
        return None
@@ -28,7 +32,7 @@ def getAppleJobOpenings():
 
 async def notifyUser(i):
     global settings
-    webhook = settings['webhook']
+    webhook = os.getenv('WEBHOOK')
     embed = nextcord.Embed(title="Apple Job Opening", description="Apple Job Opening", color=0xFFFFFF)
     embed.set_author(
         name='Apple Job Opening',
@@ -53,12 +57,12 @@ def start():
             if i['currentOpening'] and storage.get('postLocation-R824',{"beenOpen":False})['beenOpen'] == False:
                 cLog(f"New Job Opening: {i['locationId']}")
                 storage['postLocation-R824'] = {"beenOpen":True}
-                if settings['webhook'].startswith("https://"):
+                if os.getenv('WEBHOOK') != None and os.getenv('WEBHOOK').startswith("https://"):
                     asyncio.run(notifyUser(i))
                 break
             elif i['currentOpening'] and storage.get('postLocation-R824',{"beenOpen":False})['beenOpen'] == True:
                 break
-        time.sleep(settings['delay'])
+        time.sleep(int(os.getenv('DELAY')))
 
 if __name__ == "__main__":
     start()
